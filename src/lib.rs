@@ -395,6 +395,7 @@ impl TrayIcon {
             .set_icon_with_as_template(icon, is_template);
         #[cfg(not(target_os = "macos"))]
         {
+            let _ = icon;
             let _ = is_template;
             Ok(())
         }
