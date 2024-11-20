@@ -232,6 +232,7 @@ impl TrayIcon {
             tray_target.update_dimensions();
         }
         self.attrs.icon = icon;
+        self.attrs.icon_is_template = is_template;
         Ok(())
     }
 
