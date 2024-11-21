@@ -216,6 +216,26 @@ impl TrayIcon {
         self.attrs.icon_is_template = is_template;
     }
 
+    pub fn set_icon_with_as_template(
+        &mut self,
+        icon: Option<Icon>,
+        is_template: bool,
+    ) -> crate::Result<()> {
+        if let (Some(ns_status_item), Some(tray_target)) = (&self.ns_status_item, &self.tray_target)
+        {
+            set_icon_for_ns_status_item_button(
+                ns_status_item,
+                icon.clone(),
+                is_template,
+                self.mtm,
+            )?;
+            tray_target.update_dimensions();
+        }
+        self.attrs.icon = icon;
+        self.attrs.icon_is_template = is_template;
+        Ok(())
+    }
+
     pub fn set_show_menu_on_left_click(&mut self, enable: bool) {
         if let Some(tray_target) = &self.tray_target {
             tray_target.ivars().menu_on_left_click.set(enable);

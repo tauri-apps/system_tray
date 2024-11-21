@@ -387,6 +387,20 @@ impl TrayIcon {
         let _ = is_template;
     }
 
+    pub fn set_icon_with_as_template(&self, icon: Option<Icon>, is_template: bool) -> Result<()> {
+        #[cfg(target_os = "macos")]
+        return self
+            .tray
+            .borrow_mut()
+            .set_icon_with_as_template(icon, is_template);
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = icon;
+            let _ = is_template;
+            Ok(())
+        }
+    }
+
     /// Disable or enable showing the tray menu on left click.
     ///
     /// ## Platform-specific:
