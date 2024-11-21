@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.19.2]
+
+- [`1f0e1f8`](https://www.github.com/tauri-apps/tray-icon/commit/1f0e1f8f0d0ad65cd0ab549655fac26c0f524de6) ([#204](https://www.github.com/tauri-apps/tray-icon/pull/204) by [@mrexox](https://www.github.com/tauri-apps/tray-icon/../../mrexox)) Add `set_icon_with_as_template` method to update icon and `is_template` property, preventing glitchy effects during icon animation on macOS.
+
 ## \[0.19.1]
 
 - [`19e67de`](https://www.github.com/tauri-apps/tray-icon/commit/19e67de6ff0b66241fddde507eb82e96781b6c36) ([#199](https://www.github.com/tauri-apps/tray-icon/pull/199) by [@Klemen2](https://www.github.com/tauri-apps/tray-icon/../../Klemen2)) Implemented `TrayIcon::set_show_menu_on_left_click` on windows
