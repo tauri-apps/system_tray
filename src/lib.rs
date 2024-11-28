@@ -88,6 +88,37 @@
 //!     println!("menu event: {:?}", event);
 //! }
 //! ```
+//!
+//! ### Note for [winit] or [tao] users:
+//!
+//! You should use [`TrayIconEvent::set_event_handler`] and forward
+//! the tray icon events to the event loop by using [`EventLoopProxy`]
+//! so that the event loop is awakened on each tray icon event.
+//! Same can be done for menu events using [`MenuEvent::set_event_handler`].
+//!
+//! ```no_run
+//! # use winit::event_loop::EventLoopBuilder;
+//! enum UserEvent {
+//!   TrayIconEvent(tray_icon::TrayIconEvent),
+//!   MenuEvent(tray_icon::menu::MenuEvent)
+//! }
+//!
+//! let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build().unwrap();
+//!
+//! let proxy = event_loop.create_proxy();
+//! tray_icon::TrayIconEvent::set_event_handler(Some(move |event| {
+//!     proxy.send_event(UserEvent::TrayIconEvent(event));
+//! }));
+//!
+//! let proxy = event_loop.create_proxy();
+//! tray_icon::menu::MenuEvent::set_event_handler(Some(move |event| {
+//!     proxy.send_event(UserEvent::MenuEvent(event));
+//! }));
+//! ```
+//!
+//! [`EventLoopProxy`]: https://docs.rs/winit/latest/winit/event_loop/struct.EventLoopProxy.html
+//! [winit]: https://docs.rs/winit
+//! [tao]: https://docs.rs/tao
 
 use std::{
     cell::RefCell,

@@ -8,7 +8,14 @@ use tray_icon::{
     menu::{AboutMetadata, Menu, MenuEvent, MenuItem, PredefinedMenuItem},
     TrayIconBuilder, TrayIconEvent,
 };
-use winit::event_loop::{ControlFlow, EventLoopBuilder};
+use winit::{
+    event::Event,
+    event_loop::{ControlFlow, EventLoopBuilder},
+};
+
+enum UserEvent {
+    TrayIconEvent(tray_icon::TrayIconEvent),
+}
 
 fn main() {
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/icon.png");
@@ -32,7 +39,15 @@ fn main() {
         gtk::main();
     });
 
-    let event_loop = EventLoopBuilder::new().build().unwrap();
+    let event_loop = EventLoopBuilder::<UserEvent>::with_user_event()
+        .build()
+        .unwrap();
+
+    // set a tray event handler that forwards the event and wakes up the event loop
+    let proxy = event_loop.create_proxy();
+    TrayIconEvent::set_event_handler(Some(move |event| {
+        proxy.send_event(UserEvent::TrayIconEvent(event));
+    }));
 
     #[cfg(not(target_os = "linux"))]
     let mut tray_icon = None;
@@ -41,42 +56,40 @@ fn main() {
     let tray_channel = TrayIconEvent::receiver();
 
     event_loop.run(move |event, event_loop| {
-        // We add delay of 16 ms (60fps) to event_loop to reduce cpu load.
-        // This can be removed to allow ControlFlow::Poll to poll on each cpu cycle
-        // Alternatively, you can set ControlFlow::Wait or use TrayIconEvent::set_event_handler,
-        // see https://github.com/tauri-apps/tray-icon/issues/83#issuecomment-1697773065
-        event_loop.set_control_flow(ControlFlow::WaitUntil(
-            std::time::Instant::now() + std::time::Duration::from_millis(16),
-        ));
+        event_loop.set_control_flow(ControlFlow::Wait);
 
-        #[cfg(not(target_os = "linux"))]
-        if let winit::event::Event::NewEvents(winit::event::StartCause::Init) = event {
-            let icon = load_icon(std::path::Path::new(path));
+        match event {
+            #[cfg(not(target_os = "linux"))]
+            Event::NewEvents(winit::event::StartCause::Init) => {
+                let icon = load_icon(std::path::Path::new(path));
 
-            // We create the icon once the event loop is actually running
-            // to prevent issues like https://github.com/tauri-apps/tray-icon/issues/90
-            tray_icon = Some(
-                TrayIconBuilder::new()
-                    .with_menu(Box::new(Menu::new()))
-                    .with_tooltip("winit - awesome windowing lib")
-                    .with_icon(icon)
-                    .with_title("x")
-                    .build()
-                    .unwrap(),
-            );
-            // We have to request a redraw here to have the icon actually show up.
-            // Winit only exposes a redraw method on the Window so we use core-foundation directly.
-            #[cfg(target_os = "macos")]
-            unsafe {
-                use core_foundation::runloop::{CFRunLoopGetMain, CFRunLoopWakeUp};
+                // We create the icon once the event loop is actually running
+                // to prevent issues like https://github.com/tauri-apps/tray-icon/issues/90
+                tray_icon = Some(
+                    TrayIconBuilder::new()
+                        .with_menu(Box::new(Menu::new()))
+                        .with_tooltip("winit - awesome windowing lib")
+                        .with_icon(icon)
+                        .with_title("x")
+                        .build()
+                        .unwrap(),
+                );
+                // We have to request a redraw here to have the icon actually show up.
+                // Winit only exposes a redraw method on the Window so we use core-foundation directly.
+                #[cfg(target_os = "macos")]
+                unsafe {
+                    use core_foundation::runloop::{CFRunLoopGetMain, CFRunLoopWakeUp};
 
-                let rl = CFRunLoopGetMain();
-                CFRunLoopWakeUp(rl);
+                    let rl = CFRunLoopGetMain();
+                    CFRunLoopWakeUp(rl);
+                }
             }
-        }
 
-        if let Ok(event) = tray_channel.try_recv() {
-            println!("{event:?}");
+            Event::UserEvent(UserEvent::TrayIconEvent(event)) => {
+                println!("{event:?}");
+            }
+
+            _ => {}
         }
     });
 }
