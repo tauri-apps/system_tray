@@ -26,7 +26,7 @@ struct Application {
 
 impl Application {
     fn new() -> Application {
-        return Application { tray_icon: None };
+        Application { tray_icon: None }
     }
 
     fn init(&mut self) {
@@ -50,7 +50,7 @@ impl Application {
         if let Err(err) = menu.append(&item1) {
             println!("{err:?}");
         }
-        return menu;
+        menu
     }
 }
 
