@@ -29,22 +29,20 @@ impl Application {
         Application { tray_icon: None }
     }
 
-    fn init(&mut self) {
+    fn new_tray_icon() -> TrayIcon {
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/icon.png");
         let icon = load_icon(std::path::Path::new(path));
 
-        self.tray_icon = Some(
-            TrayIconBuilder::new()
-                .with_menu(Box::new(self.new_tray_menu()))
-                .with_tooltip("winit - awesome windowing lib")
-                .with_icon(icon)
-                .with_title("x")
-                .build()
-                .unwrap(),
-        );
+        TrayIconBuilder::new()
+            .with_menu(Box::new(Self::new_tray_menu()))
+            .with_tooltip("winit - awesome windowing lib")
+            .with_icon(icon)
+            .with_title("x")
+            .build()
+            .unwrap()
     }
 
-    fn new_tray_menu(&self) -> Menu {
+    fn new_tray_menu() -> Menu {
         let menu = Menu::new();
         let item1 = MenuItem::new("item1", true, None);
         if let Err(err) = menu.append(&item1) {
@@ -74,7 +72,10 @@ impl ApplicationHandler<UserEvent> for Application {
         // to prevent issues like https://github.com/tauri-apps/tray-icon/issues/90
         if winit::event::StartCause::Init == cause {
             #[cfg(not(target_os = "linux"))]
-            self.init();
+            {
+                self.tray_icon = Some(Self::new_tray_icon());
+            }
+            
 
             // We have to request a redraw here to have the icon actually show up.
             // Winit only exposes a redraw method on the Window so we use core-foundation directly.
@@ -118,7 +119,7 @@ fn main() {
     std::thread::spawn(|| {
         gtk::init().unwrap();
 
-        app.init();
+        let _tray_icon = Application::new_tray_icon();
 
         gtk::main();
     });
