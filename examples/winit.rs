@@ -75,7 +75,6 @@ impl ApplicationHandler<UserEvent> for Application {
             {
                 self.tray_icon = Some(Self::new_tray_icon());
             }
-            
 
             // We have to request a redraw here to have the icon actually show up.
             // Winit only exposes a redraw method on the Window so we use core-foundation directly.
