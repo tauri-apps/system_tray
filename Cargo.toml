@@ -13,9 +13,10 @@ rust-version = "1.71"
 default = []
 serde = ["muda/serde", "dep:serde"]
 common-controls-v6 = ["muda/common-controls-v6"]
+linux-ksni = ["muda/linux-ksni"]
 
 [dependencies]
-muda = { version = "0.15", default-features = false, features = ["ksni"] }
+muda = { version = "0.15", default-features = false }
 crossbeam-channel = "0.5"
 once_cell = "1"
 thiserror = "2.0"
@@ -32,9 +33,14 @@ features = [
 ]
 
 [target."cfg(target_os = \"linux\")".dependencies]
+dirs = "6"
+
+[target."cfg(all(target_os = \"linux\", not(feature = \"linux-ksni\")))".dependencies]
+libappindicator = "0.9"
+
+[target."cfg(all(target_os = \"linux\", feature = \"linux-ksni\"))".dependencies]
 arc-swap = "1.7.1"
 ksni = "0.2.2"
-dirs = "6"
 
 [target."cfg(target_os = \"linux\")".dev-dependencies]
 gtk = "0.18"
@@ -90,4 +96,5 @@ eframe = "0.30"
 serde_json = "1"
 
 [patch.crates-io]
-muda = { git = "https://github.com/dfaust/muda", branch = "ksni" }
+# muda = { git = "https://github.com/dfaust/muda", branch = "linux-ksni" }
+muda = { path = "../muda" }
