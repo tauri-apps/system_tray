@@ -96,5 +96,4 @@ eframe = "0.30"
 serde_json = "1"
 
 [patch.crates-io]
-# muda = { git = "https://github.com/dfaust/muda", branch = "linux-ksni" }
-muda = { path = "../muda" }
+muda = { git = "https://github.com/dfaust/muda", branch = "ksni" }
