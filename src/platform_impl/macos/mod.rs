@@ -5,14 +5,15 @@
 mod icon;
 use std::cell::{Cell, RefCell};
 
-use core_graphics::display::CGDisplay;
 use objc2::rc::Retained;
-use objc2::{declare_class, msg_send, msg_send_id, mutability, ClassType, DeclaredClass};
+use objc2::{define_class, msg_send, AllocAnyThread, DeclaredClass, Message};
 use objc2_app_kit::{
     NSCellImagePosition, NSEvent, NSImage, NSMenu, NSStatusBar, NSStatusItem, NSTrackingArea,
     NSTrackingAreaOptions, NSVariableStatusItemLength, NSView, NSWindow,
 };
-use objc2_foundation::{CGPoint, CGRect, CGSize, MainThreadMarker, NSData, NSSize, NSString};
+use objc2_core_foundation::{CGPoint, CGRect, CGSize};
+use objc2_core_graphics::{CGDisplayPixelsHigh, CGMainDisplayID};
+use objc2_foundation::{MainThreadMarker, NSData, NSSize, NSString};
 
 pub(crate) use self::icon::PlatformIcon;
 use crate::Error;
@@ -86,8 +87,7 @@ impl TrayIcon {
                 status_item: ns_status_item.retain(),
                 menu_on_left_click: Cell::new(attrs.menu_on_left_click),
             });
-            let tray_target: Retained<TrayTarget> =
-                msg_send_id![super(target), initWithFrame: frame];
+            let tray_target: Retained<TrayTarget> = msg_send![super(target), initWithFrame: frame];
             tray_target.setWantsLayer(true);
 
             button.addSubview(&tray_target);
@@ -285,7 +285,7 @@ fn set_icon_for_ns_status_item_button(
             button.setImage(Some(&nsimage));
             nsimage.setSize(new_size);
             // The image is to the right of the title
-            button.setImagePosition(NSCellImagePosition::NSImageLeft);
+            button.setImagePosition(NSCellImagePosition::ImageLeft);
             nsimage.setTemplate(icon_is_template);
         }
     } else {
@@ -303,22 +303,15 @@ struct TrayTargetIvars {
     menu_on_left_click: Cell<bool>,
 }
 
-declare_class!(
+define_class!(
+    #[unsafe(super(NSView))]
+    #[name = "TaoTrayTarget"]
+    #[ivars = TrayTargetIvars]
     struct TrayTarget;
 
-    unsafe impl ClassType for TrayTarget {
-        type Super = NSView;
-        type Mutability = mutability::MainThreadOnly;
-        const NAME: &'static str = "TaoTrayTarget";
-    }
-
-    impl DeclaredClass for TrayTarget {
-        type Ivars = TrayTargetIvars;
-    }
-
-    // Mouse events on NSResponder
-    unsafe impl TrayTarget {
-        #[method(mouseDown:)]
+    /// Mouse events on NSResponder
+    impl TrayTarget {
+        #[unsafe(method(mouseDown:))]
         fn on_mouse_down(&self, event: &NSEvent) {
             send_mouse_event(
                 self,
@@ -332,7 +325,7 @@ declare_class!(
             on_tray_click(self, MouseButton::Left);
         }
 
-        #[method(mouseUp:)]
+        #[unsafe(method(mouseUp:))]
         fn on_mouse_up(&self, event: &NSEvent) {
             let mtm = MainThreadMarker::from(self);
             unsafe {
@@ -350,7 +343,7 @@ declare_class!(
             );
         }
 
-        #[method(rightMouseDown:)]
+        #[unsafe(method(rightMouseDown:))]
         fn on_right_mouse_down(&self, event: &NSEvent) {
             send_mouse_event(
                 self,
@@ -364,7 +357,7 @@ declare_class!(
             on_tray_click(self, MouseButton::Right);
         }
 
-        #[method(rightMouseUp:)]
+        #[unsafe(method(rightMouseUp:))]
         fn on_right_mouse_up(&self, event: &NSEvent) {
             send_mouse_event(
                 self,
@@ -377,7 +370,7 @@ declare_class!(
             );
         }
 
-        #[method(otherMouseDown:)]
+        #[unsafe(method(otherMouseDown:))]
         fn on_other_mouse_down(&self, event: &NSEvent) {
             let button_number = unsafe { event.buttonNumber() };
             if button_number == 2 {
@@ -393,7 +386,7 @@ declare_class!(
             }
         }
 
-        #[method(otherMouseUp:)]
+        #[unsafe(method(otherMouseUp:))]
         fn on_other_mouse_up(&self, event: &NSEvent) {
             let button_number = unsafe { event.buttonNumber() };
             if button_number == 2 {
@@ -409,38 +402,38 @@ declare_class!(
             }
         }
 
-        #[method(mouseEntered:)]
+        #[unsafe(method(mouseEntered:))]
         fn on_mouse_entered(&self, event: &NSEvent) {
             send_mouse_event(self, event, MouseEventType::Enter, None);
         }
 
-        #[method(mouseExited:)]
+        #[unsafe(method(mouseExited:))]
         fn on_mouse_exited(&self, event: &NSEvent) {
             send_mouse_event(self, event, MouseEventType::Leave, None);
         }
 
-        #[method(mouseMoved:)]
+        #[unsafe(method(mouseMoved:))]
         fn on_mouse_moved(&self, event: &NSEvent) {
             send_mouse_event(self, event, MouseEventType::Move, None);
         }
     }
 
-    // Tracking mouse enter/exit/move events
-    unsafe impl TrayTarget {
-        #[method(updateTrackingAreas)]
+    /// Tracking mouse enter/exit/move events
+    impl TrayTarget {
+        #[unsafe(method(updateTrackingAreas))]
         fn update_tracking_areas(&self) {
             unsafe {
                 let areas = self.trackingAreas();
-                for area in &areas {
-                    self.removeTrackingArea(area);
+                for area in areas {
+                    self.removeTrackingArea(&area);
                 }
 
                 let _: () = msg_send![super(self), updateTrackingAreas];
 
-                let options = NSTrackingAreaOptions::NSTrackingMouseEnteredAndExited
-                    | NSTrackingAreaOptions::NSTrackingMouseMoved
-                    | NSTrackingAreaOptions::NSTrackingActiveAlways
-                    | NSTrackingAreaOptions::NSTrackingInVisibleRect;
+                let options = NSTrackingAreaOptions::MouseEnteredAndExited
+                    | NSTrackingAreaOptions::MouseMoved
+                    | NSTrackingAreaOptions::ActiveAlways
+                    | NSTrackingAreaOptions::InVisibleRect;
                 let rect = CGRect {
                     origin: CGPoint { x: 0.0, y: 0.0 },
                     size: CGSize {
@@ -590,5 +583,5 @@ struct MouseClickEvent {
 /// This conversion happens to be symmetric, so we only need this one function
 /// to convert between the two coordinate systems.
 fn flip_window_screen_coordinates(y: f64) -> f64 {
-    CGDisplay::main().pixels_high() as f64 - y
+    unsafe { CGDisplayPixelsHigh(CGMainDisplayID()) as f64 - y }
 }
