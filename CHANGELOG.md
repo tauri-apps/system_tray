@@ -1,5 +1,9 @@
 # Changelog
 
+## \[0.19.3]
+
+- [`d6fee6f`](https://www.github.com/tauri-apps/tray-icon/commit/d6fee6ff627e6ff08bf8bf9a2880197d0f07271e) ([#226](https://www.github.com/tauri-apps/tray-icon/pull/226) by [@madsmtm](https://www.github.com/tauri-apps/tray-icon/../../madsmtm)) Update `objc2` to v0.6.
+
 ## \[0.19.2]
 
 - [`1f0e1f8`](https://www.github.com/tauri-apps/tray-icon/commit/1f0e1f8f0d0ad65cd0ab549655fac26c0f524de6) ([#204](https://www.github.com/tauri-apps/tray-icon/pull/204) by [@mrexox](https://www.github.com/tauri-apps/tray-icon/../../mrexox)) Add `set_icon_with_as_template` method to update icon and `is_template` property, preventing glitchy effects during icon animation on macOS.
